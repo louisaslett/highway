@@ -1,7 +1,8 @@
 # highway: Google Highway SIMD for R packages
 
 <!-- badges: start -->
-[![CRAN status](https://www.r-pkg.org/badges/version/highway)](https://CRAN.R-project.org/package=highway)
+<!-- After CRAN acceptance, link this badge to https://CRAN.R-project.org/package=highway -->
+![CRAN status](https://www.r-pkg.org/badges/version/highway)
 [![R-CMD-check](https://github.com/louisaslett/highway/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/louisaslett/highway/actions/workflows/R-CMD-check.yaml)
 [![consumers](https://github.com/louisaslett/highway/actions/workflows/consumers.yaml/badge.svg)](https://github.com/louisaslett/highway/actions/workflows/consumers.yaml)
 [![R-hub](https://github.com/louisaslett/highway/actions/workflows/rhub.yaml/badge.svg)](https://github.com/louisaslett/highway/actions/workflows/rhub.yaml)

@@ -1,0 +1,13 @@
+# dev/consumer-tests/run-all.sh on macOS arm64 (Apple M1), 2026-11-18
+consumer        check    install seconds
+consumerA       OK       10
+consumerB       OK       10
+consumerC       OK       8
+consumerRcpp    OK       9
+consumerCpp11   OK       8
+only one usable target here; target-forcing check skipped
+isolation test passed: normal 
+only one usable target here; target-forcing check skipped
+isolation test passed: B-global 
+NULL
+isolation test passed: A-global 

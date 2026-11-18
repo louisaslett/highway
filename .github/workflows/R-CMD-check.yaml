@@ -67,6 +67,8 @@ jobs:
         run: |
           R CMD INSTALL .
           Rscript -e 'library(highway); cat("R", format(getRversion()), R.version$platform, "\nHighway", format(highway_version()), "\nsupported: ", supported_targets(), "\ncompiled:  ", compiled_targets(), "\ndispatched:", dispatched_target(), "\n")'
+          pkgdir=$(Rscript -e 'cat(system.file(package = "highway"))')
+          echo "installed size (du -sk):"; du -sk "$pkgdir" "$pkgdir"/libs "$pkgdir"/include
 
       - uses: r-lib/actions/check-r-package@v2
         with:

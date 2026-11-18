@@ -1,0 +1,6 @@
+# spelling::spell_check_package() and urlchecker::url_check(), 2026-11-18
+spelling: 0 potential misspellings
+ℹ Package highway
+ℹ Checking that VignetteBuilder packages knitr and rmarkdown are installed.
+✔ VignetteBuilder packages knitr and rmarkdown are installed.
+                       ✔ All URLs are correct!

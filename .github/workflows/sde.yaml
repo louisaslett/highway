@@ -4,10 +4,11 @@
 # test_all_targets.R then runs every compiled target the emulated CPU
 # supports.
 #
-# The oldest emulated CPU is Westmere: the runner's toolchain and system
-# libraries assume x86-64-v2, so earlier CPUs would fault outside our code.
-# SSSE3 (and every other compiled target) is still forced and tested on each
-# emulated CPU by test_all_targets.R.
+# The oldest emulated CPU is Haswell: the runner's system libraries (even the
+# dynamic loader) execute AVX instructions, so emulating an earlier CPU stops
+# before R starts. SSE4 and SSSE3 code is still forced and tested on each
+# emulated CPU by test_all_targets.R; SSE2 is compiled only where the
+# toolchain baseline is plain x86-64 and runs natively on the Windows runners.
 #
 # SDE is downloaded at run time from Intel's official mirror and verified
 # against the SHA-256 Intel publishes; it is not redistributed. Licence:
@@ -87,7 +88,6 @@ jobs:
             fi
             echo "::endgroup::"
           done <<'EOF'
-          wsm SSE4
           hsw AVX2
           skx AVX3
           icx AVX3_DL

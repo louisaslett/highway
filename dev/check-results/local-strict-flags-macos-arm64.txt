@@ -1,0 +1,8 @@
+# Strict-flags build: R_MAKEVARS_USER=dev/Makevars.strict (CXXFLAGS = -g -O2 -Wall -Wextra -pedantic -Werror)
+# 2026-11-18 macOS arm64, Apple clang version 21.0.0 (clang-2100.3.34.2)
+clang++ -arch arm64 -std=gnu++20 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG -I../inst/include -I.     -fvisibility=hidden -fPIC  -g -O2 -Wall -Wextra -pedantic -Werror  -c demo_kernels.cpp -o demo_kernels.o
+clang++ -arch arm64 -std=gnu++20 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG -I../inst/include -I.     -fvisibility=hidden -fPIC  -g -O2 -Wall -Wextra -pedantic -Werror  -c highway-impl.cpp -o highway-impl.o
+clang++ -arch arm64 -std=gnu++20 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG -I../inst/include -I.     -fvisibility=hidden -fPIC  -g -O2 -Wall -Wextra -pedantic -Werror  -c init.cpp -o init.o
+clang++ -arch arm64 -std=gnu++20 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG -I../inst/include -I.     -fvisibility=hidden -fPIC  -g -O2 -Wall -Wextra -pedantic -Werror  -c r_api.cpp -o r_api.o
+clang++ -arch arm64 -std=gnu++20 -dynamiclib -Wl,-headerpad_max_install_names -undefined dynamic_lookup -L/Library/Frameworks/R.framework/Resources/lib -L/opt/R/arm64/lib -o highway.so demo_kernels.o highway-impl.o init.o r_api.o -F/Library/Frameworks/R.framework/.. -framework R
+* DONE (highway)

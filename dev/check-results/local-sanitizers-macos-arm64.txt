@@ -1,0 +1,9 @@
+# dev/sanitizers/run.sh on macOS arm64, Apple clang version 21.0.0 (clang-2100.3.34.2), 2026-11-18
+== clang++ -fsanitize=thread
+dispatched target: NEON
+supported: NEON NEON_WITHOUT_AES EMU128 SCALAR
+passed (0 failures)
+== clang++ -fsanitize=address,undefined
+dispatched target: NEON
+supported: NEON NEON_WITHOUT_AES EMU128 SCALAR
+passed (0 failures)

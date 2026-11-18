@@ -1,0 +1,29 @@
+# Builds the package for webR (WebAssembly, Emscripten). Highway is restricted
+# to its portable EMU128 target there (highway/config.h); this job checks
+# that the package compiles and produces a webR binary. It does not run the
+# tests inside webR.
+name: webr
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'inst/include/**', '.github/workflows/webr.yaml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/r-wasm/webr:main
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with rwasm
+        run: |
+          Rscript -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
+          Rscript -e 'pak::pak("r-wasm/rwasm")'
+          Rscript -e 'rwasm::build(paste0("local::", normalizePath(".")), out_dir = "webr-repo")'
+          find webr-repo -name 'highway*' | head
+          test -n "$(find webr-repo -name 'highway_*.tgz' -o -name 'highway_*.tar.gz' | head -n 1)"

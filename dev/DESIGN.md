@@ -1,7 +1,9 @@
 # highway: design notes
 
-Status: Phase 1 (research) draft, 2026-11-18. Decisions marked **[decision]** need
-maintainer sign-off before Phase 2.
+Status: approved 2026-11-18 with the recommended option for every
+**[decision]** (diagnostic suppression compiled out; POWER/s390x, RISC-V and
+WebAssembly back ends not bundled; Intel SDE used in CI; knitr + rmarkdown).
+Section 15 records what implementation and CI found afterwards.
 
 ## 1. What is being built
 
@@ -392,3 +394,61 @@ knitr/rmarkdown the vignette is not rebuilt (standard behaviour with
 5. win-builder results arrive by email to the maintainer; the maintainer has to
    forward the result links.
 6. AVX-512 on GitHub runners is not guaranteed; SDE is the deterministic source.
+
+## 15. Findings during implementation (2026-11-18)
+
+1. **Patches needed beyond the plan.** 0008 (MinGW `-Wformat`): Rtools GCC
+   checks `__attribute__((format(printf, ...)))` against the Microsoft format
+   syntax and warned on `%zu` in `image.cc`; R CMD check reported it as a
+   significant warning on Windows. `HWY_FORMAT` now uses `__gnu_printf__` on
+   MinGW (the formatting itself goes through C99-conforming `vsnprintf`).
+   0002 was narrowed: hiding `hwy::ImageBase` made GCC warn
+   (`-Wattributes`) for every `hwy::Image<T>`; `ImageBase` is stateless, so
+   only the runtime functions (`HWY_DLLEXPORT`) are hidden.
+2. **Warning sweep** (upstream op and contrib tests, 86 translation units,
+   `-O2 -Wall -Wextra -pedantic`, suppression compiled out): 0 warnings in
+   shipped files with Apple clang 21 (arm64, x86_64), GCC 16.2 (x86_64 after
+   fix 1, arm64), and in CI with GCC 16 and clang 23 on native x86_64 and
+   arm64 runners (`header-warnings.yaml`).
+3. **Windows stack alignment (GCC PR 54412).** Not a problem with current
+   MinGW GCC: it spills 32- and 64-byte vectors with unaligned moves
+   (`vmovupd`; 88 stack spills in the AVX2 spill kernel, 40 in AVX3, no
+   aligned ones, inspected with MinGW GCC 16), and the spill test passed on
+   real Zen 4 hardware under Rtools GCC 14.3 for SSE2, SSSE3, SSE4, AVX2,
+   AVX3, AVX3_DL and AVX3_ZEN4. No Windows target restriction is applied;
+   the spill test stays as a regression guard (`HIGHWAY_R_BROKEN_TARGETS`
+   remains 0).
+4. **RISC-V NaN payloads.** RISC-V returns a canonical NaN, so `std::exp(NA)`
+   is `NaN`. Base R's `math1()` copies NaN inputs to the output for this
+   reason; the demo kernels, templates and vignette now do the same.
+5. **Single compiled target.** When `HWY_TARGETS` has one bit (e.g. the lean
+   set on an Apple M1), Highway turns `HWY_DYNAMIC_DISPATCH` into a direct
+   call that never touches the chosen-target state. Tests that inspect that
+   state use multi-target kernels.
+6. **Apple clang 21 crash** ("Cannot select: v4bf16 = bitcast") compiling
+   `LoadN` for 2-lane `bfloat16_t` on `NEON_BF16` (upstream `memory_test`).
+   Upstream issue; documented in the vignette's troubleshooting section.
+7. **Runner hardware seen in CI** (real, not emulated): AMD EPYC 9V45
+   (Zen 5; AVX3_ZEN4) and Intel Xeon Platinum 8573C (Emerald Rapids;
+   AVX3_SPR) on ubuntu-latest; EPYC 9V74 (Zen 4) on windows-latest, with or
+   without AVX-512 exposed depending on the VM; Neoverse N2 (SVE2_128) on
+   ubuntu-24.04-arm; Core i7-8700B (AVX2) on macos-15-intel; Apple M1 (NEON)
+   on macos-latest. Ubuntu 26.04's GCC 15.2 defaults to x86-64-v2, so SSE2 is
+   not compiled there (it is on Windows and CRAN's Debian).
+8. **Intel SDE licence.** The SDE 10.13.1 kit carries the Intel Simplified
+   Software License (Version February 2020): use and unmodified
+   redistribution permitted; no reverse engineering; no restriction on
+   automated use. The download page's click-through was accepted on the
+   maintainer's behalf (with permission). CI downloads the kit at run time
+   from Intel's mirror (`downloadmirror.intel.com/924984/...`) and checks
+   Intel's published SHA-256; nothing is redistributed. The oldest emulated
+   CPU is Haswell: on Ubuntu 26.04 runners even the dynamic loader uses AVX,
+   so emulating Westmere faults before R starts. Under SDE, Haswell (AVX2),
+   Skylake-X (AVX3), Ice Lake (AVX3_DL), Sapphire Rapids (AVX3_SPR) and
+   Diamond Rapids (AVX10_2) each dispatched the expected target and passed.
+9. **`LICENSE` stub.** R's `BSD_3_clause` template has three fields (`YEAR`,
+   `COPYRIGHT HOLDER`, `ORGANIZATION`), not the two in the brief; without
+   `ORGANIZATION`, R CMD check gives a NOTE.
+10. **`use_highway()` needs `-I.`**, confirmed: `foreach_target.h` re-includes
+    `HWY_TARGET_INCLUDE` relative to its own directory and the `-I` path, not
+    the including file's directory.
