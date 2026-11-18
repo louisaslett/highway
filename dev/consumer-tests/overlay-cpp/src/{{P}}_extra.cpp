@@ -42,7 +42,9 @@ void LogImpl(const double* HWY_RESTRICT in, double* HWY_RESTRICT out,
     if (hn::AllTrue(d, hn::And(hn::Ge(v, lo), hn::Le(v, hi)))) {
       hn::StoreN(hn::Log(d, v), d, out + i, m);
     } else {
-      for (size_t j = i; j < i + m; ++j) out[j] = std::log(in[j]);
+      for (size_t j = i; j < i + m; ++j) {
+        out[j] = std::isnan(in[j]) ? in[j] : std::log(in[j]);
+      }
     }
   }
 }

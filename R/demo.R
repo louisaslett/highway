@@ -9,7 +9,8 @@
 #' `hwy_demo_exp()` and `hwy_demo_log()` return exactly what [exp()] and
 #' [log()] return for `NA`, `NaN`, `Inf`, `-Inf`, `0`, `-0`, negative numbers,
 #' subnormal numbers, and results that overflow or underflow. Such elements
-#' are computed with the C library, like base R; all others use Highway's
+#' are computed as base R computes them (with the C library, returning `NA`
+#' and `NaN` inputs unchanged); all others use Highway's
 #' SIMD `Exp()` and `Log()`, which are accurate to 1 and 4 units in the last
 #' place respectively, so they can differ from base R in the last bits.
 #'

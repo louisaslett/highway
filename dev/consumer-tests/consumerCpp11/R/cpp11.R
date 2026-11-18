@@ -11,3 +11,7 @@ cpp11_hwy_target <- function() {
 cpp11_hwy_abort <- function(code) {
   invisible(.Call(`_consumerCpp11_cpp11_hwy_abort`, code))
 }
+
+cpp11_hwy_sum_int <- function(x) {
+  .Call(`_consumerCpp11_cpp11_hwy_sum_int`, x)
+}

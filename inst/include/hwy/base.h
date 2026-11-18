@@ -176,7 +176,14 @@
 namespace hwy {
 
 // Enables error-checking of format strings.
-#if HWY_HAS_ATTRIBUTE(__format__)
+#if HWY_HAS_ATTRIBUTE(__format__) && defined(__MINGW32__)
+// R package 'highway' (local patch 0008): on MinGW, GCC's 'printf' archetype
+// checks against the Microsoft runtime's format syntax, which lacks %zu and
+// gives -Wformat warnings for valid C99 formats; the formatting itself goes
+// through C99-conforming vsnprintf (UCRT or MinGW's own), so check as GNU.
+#define HWY_FORMAT(idx_fmt, idx_arg) \
+  __attribute__((__format__(__gnu_printf__, idx_fmt, idx_arg)))
+#elif HWY_HAS_ATTRIBUTE(__format__)
 #define HWY_FORMAT(idx_fmt, idx_arg) \
   __attribute__((__format__(__printf__, idx_fmt, idx_arg)))
 #else

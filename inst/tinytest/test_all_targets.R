@@ -39,7 +39,7 @@ for (target in usable) {
   s <- sin(seq_len(1001))
   expect_true(abs(res$sum - sum(s)) <= 1001 * .Machine$double.eps * sum(abs(s)),
               info = target)
-  expect_identical(res$sum_na, NA_real_, info = target)
+  expect_identical(res$sum_na, sum(c(1, NA, 3)), info = target)
   # 40 live vectors force stack spills; with exact arithmetic the SIMD and
   # scalar checksums must agree bit for bit.
   expect_identical(res$spill[1], res$spill[2], info = target)

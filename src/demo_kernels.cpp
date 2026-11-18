@@ -33,13 +33,15 @@ namespace hn = hwy::HWY_NAMESPACE;
 // hn::Exp is documented as accurate to 1 ULP on [-DBL_MAX, 706]. Below -708
 // the result is subnormal, so the SIMD path is used on [-708, 706] only and
 // any other lane (including NaN and NA, for which every comparison is false)
-// is computed with std::exp, which is what R's exp() calls.
+// is computed like R's exp(): with std::exp, except that a NaN input is
+// returned unchanged. (R's math1() does the same, because RISC-V returns a
+// canonical NaN and would turn NA into NaN.)
 constexpr double kExpLo = -708.0;
 constexpr double kExpHi = 706.0;
 
 // hn::Log is documented as accurate to 4 ULP on (0, DBL_MAX]. The SIMD path is
 // used for normal positive inputs only; 0, negatives, subnormals, +Inf, NaN
-// and NA go through std::log.
+// and NA are computed like R's log() (std::log, NaN inputs unchanged).
 constexpr double kLogLo = DBL_MIN;
 constexpr double kLogHi = DBL_MAX;
 
@@ -55,7 +57,9 @@ void ExpImpl(const double* HWY_RESTRICT in, double* HWY_RESTRICT out,
     if (HWY_LIKELY(hn::AllTrue(d, hn::And(hn::Ge(v, lo), hn::Le(v, hi))))) {
       hn::StoreU(hn::Exp(d, v), d, out + i);
     } else {
-      for (size_t j = i; j < i + N; ++j) out[j] = std::exp(in[j]);
+      for (size_t j = i; j < i + N; ++j) {
+        out[j] = std::isnan(in[j]) ? in[j] : std::exp(in[j]);
+      }
     }
   }
   if (i < n) {
@@ -65,7 +69,9 @@ void ExpImpl(const double* HWY_RESTRICT in, double* HWY_RESTRICT out,
     if (hn::AllTrue(d, hn::And(hn::Ge(v, lo), hn::Le(v, hi)))) {
       hn::StoreN(hn::Exp(d, v), d, out + i, rem);
     } else {
-      for (size_t j = i; j < n; ++j) out[j] = std::exp(in[j]);
+      for (size_t j = i; j < n; ++j) {
+        out[j] = std::isnan(in[j]) ? in[j] : std::exp(in[j]);
+      }
     }
   }
 }
@@ -82,7 +88,9 @@ void LogImpl(const double* HWY_RESTRICT in, double* HWY_RESTRICT out,
     if (HWY_LIKELY(hn::AllTrue(d, hn::And(hn::Ge(v, lo), hn::Le(v, hi))))) {
       hn::StoreU(hn::Log(d, v), d, out + i);
     } else {
-      for (size_t j = i; j < i + N; ++j) out[j] = std::log(in[j]);
+      for (size_t j = i; j < i + N; ++j) {
+        out[j] = std::isnan(in[j]) ? in[j] : std::log(in[j]);
+      }
     }
   }
   if (i < n) {
@@ -92,7 +100,9 @@ void LogImpl(const double* HWY_RESTRICT in, double* HWY_RESTRICT out,
     if (hn::AllTrue(d, hn::And(hn::Ge(v, lo), hn::Le(v, hi)))) {
       hn::StoreN(hn::Log(d, v), d, out + i, rem);
     } else {
-      for (size_t j = i; j < n; ++j) out[j] = std::log(in[j]);
+      for (size_t j = i; j < n; ++j) {
+        out[j] = std::isnan(in[j]) ? in[j] : std::log(in[j]);
+      }
     }
   }
 }

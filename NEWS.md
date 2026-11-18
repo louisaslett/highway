@@ -23,6 +23,8 @@
     warnings.
   - 0007: Highway's diagnostic-suppression pragmas are compiled out (CRAN
     policy).
+  - 0008: format-string checking uses the GNU archetype on MinGW (Rtools),
+    avoiding false `-Wformat` warnings.
 * Not bundled: tests, sorting (`vqsort`), the thread pool, the random number
   generator, benchmarking helpers, and the SIMD back ends for POWER, s390x,
   RISC-V, LoongArch and WebAssembly (those architectures use Highway's

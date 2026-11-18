@@ -27,12 +27,20 @@ extern "C" SEXP _consumerCpp11_cpp11_hwy_abort(SEXP code) {
     return R_NilValue;
   END_CPP11
 }
+// code.cpp
+double cpp11_hwy_sum_int(cpp11::integers x);
+extern "C" SEXP _consumerCpp11_cpp11_hwy_sum_int(SEXP x) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(cpp11_hwy_sum_int(cpp11::as_cpp<cpp11::decay_t<cpp11::integers>>(x)));
+  END_CPP11
+}
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_consumerCpp11_cpp11_hwy_abort",  (DL_FUNC) &_consumerCpp11_cpp11_hwy_abort,  1},
-    {"_consumerCpp11_cpp11_hwy_exp",    (DL_FUNC) &_consumerCpp11_cpp11_hwy_exp,    1},
-    {"_consumerCpp11_cpp11_hwy_target", (DL_FUNC) &_consumerCpp11_cpp11_hwy_target, 0},
+    {"_consumerCpp11_cpp11_hwy_abort",   (DL_FUNC) &_consumerCpp11_cpp11_hwy_abort,   1},
+    {"_consumerCpp11_cpp11_hwy_exp",     (DL_FUNC) &_consumerCpp11_cpp11_hwy_exp,     1},
+    {"_consumerCpp11_cpp11_hwy_sum_int", (DL_FUNC) &_consumerCpp11_cpp11_hwy_sum_int, 1},
+    {"_consumerCpp11_cpp11_hwy_target",  (DL_FUNC) &_consumerCpp11_cpp11_hwy_target,  0},
     {NULL, NULL, 0}
 };
 }

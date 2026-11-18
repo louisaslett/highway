@@ -55,8 +55,8 @@ void AddImpl(const double* HWY_RESTRICT a, const double* HWY_RESTRICT b,
 
 // out[i] = exp(x[i]). Highway's Exp() is accurate to 1 ULP on [-708, 706]
 // for double; vectors with any lane outside that range, or NA/NaN, are done
-// with std::exp so that the results (and R's NA vs NaN distinction) match
-// base R's exp() exactly.
+// lane by lane like base R's exp(): std::exp, but NaN inputs (NA included)
+// are copied unchanged so that NA stays NA on every platform.
 void ExpImpl(const double* HWY_RESTRICT x, double* HWY_RESTRICT out,
              size_t n) {
   const hn::ScalableTag<double> d;
@@ -70,7 +70,9 @@ void ExpImpl(const double* HWY_RESTRICT x, double* HWY_RESTRICT out,
     if (hn::AllTrue(d, hn::And(hn::Ge(v, lo), hn::Le(v, hi)))) {
       hn::StoreN(hn::Exp(d, v), d, out + i, m);
     } else {
-      for (size_t j = i; j < i + m; ++j) out[j] = std::exp(x[j]);
+      for (size_t j = i; j < i + m; ++j) {
+        out[j] = std::isnan(x[j]) ? x[j] : std::exp(x[j]);
+      }
     }
   }
 }

@@ -3,15 +3,17 @@
 \alias{cpp11_hwy_exp}
 \alias{cpp11_hwy_target}
 \alias{cpp11_hwy_abort}
+\alias{cpp11_hwy_sum_int}
 \title{Test Functions of a 'highway' Consumer Package Using 'cpp11'}
 \description{'cpp11' wrappers around statically dispatched 'Highway' code.}
 \usage{
 cpp11_hwy_exp(x)
 cpp11_hwy_target()
 cpp11_hwy_abort(code)
+cpp11_hwy_sum_int(x)
 }
 \arguments{
-  \item{x}{A double vector.}
+  \item{x}{A double vector (an integer vector for cpp11_hwy_sum_int()).}
   \item{code}{Integer abort code (0 means no abort).}
 }
 \value{See the C++ sources.}

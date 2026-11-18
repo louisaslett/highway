@@ -33,7 +33,8 @@ directory.
 \code{hwy_demo_exp()} and \code{hwy_demo_log()} return exactly what \code{\link[=exp]{exp()}} and
 \code{\link[=log]{log()}} return for \code{NA}, \code{NaN}, \code{Inf}, \code{-Inf}, \code{0}, \code{-0}, negative numbers,
 subnormal numbers, and results that overflow or underflow. Such elements
-are computed with the C library, like base R; all others use Highway's
+are computed as base R computes them (with the C library, returning \code{NA}
+and \code{NaN} inputs unchanged); all others use Highway's
 SIMD \code{Exp()} and \code{Log()}, which are accurate to 1 and 4 units in the last
 place respectively, so they can differ from base R in the last bits.
 

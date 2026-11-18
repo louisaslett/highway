@@ -32,7 +32,9 @@ void ExpImpl(const double* HWY_RESTRICT x, double* HWY_RESTRICT out,
     if (hn::AllTrue(d, hn::And(hn::Ge(v, lo), hn::Le(v, hi)))) {
       hn::StoreN(hn::Exp(d, v), d, out + i, m);
     } else {
-      for (size_t j = i; j < i + m; ++j) out[j] = std::exp(x[j]);
+      for (size_t j = i; j < i + m; ++j) {
+        out[j] = std::isnan(x[j]) ? x[j] : std::exp(x[j]);
+      }
     }
   }
 }
