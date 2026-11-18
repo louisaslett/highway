@@ -1,0 +1,35 @@
+# ThreadSanitizer and AddressSanitizer+UBSan on a standalone harness that
+# runs the package's kernels and Highway's runtime from many threads (R-hub
+# has no ThreadSanitizer image). R-hub's sanitizer images cover the package
+# under R itself (see rhub.yaml).
+name: sanitizers
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  harness:
+    name: ${{ matrix.os }} ${{ matrix.cxx }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        cxx: [clang++, g++]
+    steps:
+      - uses: actions/checkout@v4
+      - name: CPU model
+        run: lscpu | grep -E 'Model name'
+      - name: Build and run under sanitizers
+        env:
+          CXX: ${{ matrix.cxx }}
+        run: |
+          # TSan needs ASLR entropy compatible with its shadow mapping.
+          sudo sysctl -w vm.mmap_rnd_bits=28 || true
+          dev/sanitizers/run.sh "$RUNNER_TEMP/san"

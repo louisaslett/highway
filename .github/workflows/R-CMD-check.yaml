@@ -1,0 +1,76 @@
+# R CMD check --as-cran across operating systems, architectures and R
+# versions. Fails on any NOTE: incoming checks are switched off because the
+# only incoming NOTE for a first submission ("New submission") is expected.
+name: R-CMD-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: ${{ matrix.os }} (R ${{ matrix.r }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, r: devel}
+          - {os: ubuntu-latest, r: release}
+          - {os: ubuntu-latest, r: oldrel-1}
+          - {os: ubuntu-latest, r: oldrel-2}
+          - {os: ubuntu-24.04-arm, r: release}
+          - {os: macos-latest, r: release}
+          - {os: macos-15-intel, r: release}
+          - {os: windows-latest, r: release}
+          - {os: windows-latest, r: devel}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      _R_CHECK_CRAN_INCOMING_: false
+      _R_CHECK_CRAN_INCOMING_REMOTE_: false
+      _R_CHECK_FORCE_SUGGESTS_: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.r }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - name: CPU model
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) lscpu | grep -E 'Model name|Flags' | cut -c1-400 ;;
+            macOS) sysctl -n machdep.cpu.brand_string ;;
+            Windows) powershell -Command "(Get-CimInstance Win32_Processor).Name" ;;
+          esac
+
+      - name: Install and show targets
+        shell: bash
+        run: |
+          R CMD INSTALL .
+          Rscript -e 'library(highway); cat("R", format(getRversion()), R.version$platform, "\nHighway", format(highway_version()), "\nsupported: ", supported_targets(), "\ncompiled:  ", compiled_targets(), "\ndispatched:", dispatched_target(), "\n")'
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          args: 'c("--as-cran", "--no-manual")'
+          build_args: 'c("--no-manual")'
+          error-on: '"note"'
+          upload-snapshots: false

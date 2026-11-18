@@ -1,0 +1,66 @@
+# Consumer packages: built with use_highway() from scratch (A, B, C) or
+# committed (Rcpp, cpp11), each checked with R CMD check --as-cran, loaded
+# together, and (Linux) checked for exported Highway runtime symbols.
+name: consumers
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consumers:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-15-intel, windows-latest]
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::Rcpp, any::cpp11
+          needs: check
+
+      - name: CPU model
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) lscpu | grep -E 'Model name' ;;
+            macOS) sysctl -n machdep.cpu.brand_string ;;
+            Windows) powershell -Command "(Get-CimInstance Win32_Processor).Name" ;;
+          esac
+
+      - name: Run consumer tests
+        shell: bash
+        run: dev/consumer-tests/run-all.sh "$RUNNER_TEMP/consumers"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: consumer-logs-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/consumers/*.log
+            ${{ runner.temp }}/consumers/summary.txt
+            ${{ runner.temp }}/consumers/*.Rcheck/00check.log
+            ${{ runner.temp }}/consumers/*.Rcheck/00install.out
+            ${{ runner.temp }}/consumers/*.Rcheck/tests/*.Rout*
+          if-no-files-found: ignore

@@ -1,0 +1,44 @@
+# Compiles upstream Highway's op and contrib tests against the bundled,
+# patched headers with the newest GCC and Clang that CRAN uses, failing on
+# any warning in a shipped file (the package removes Highway's diagnostic
+# suppression pragmas, so this is where hidden warnings would surface).
+name: header-warnings
+
+on:
+  push:
+    branches: [main]
+    paths: ['inst/include/**', 'tools/**', 'dev/header-warnings/**', '.github/workflows/header-warnings.yaml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    name: ${{ matrix.os }} ${{ matrix.cxx }} ${{ matrix.std }}
+    runs-on: ${{ matrix.os }}
+    container: debian:testing
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        cxx: [g++-16, clang++-23]
+        std: [gnu++20]
+        include:
+          - {os: ubuntu-latest, cxx: g++-16, std: gnu++17}
+          - {os: ubuntu-latest, cxx: clang++-23, std: gnu++17}
+    steps:
+      - name: Install compilers
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            g++-16 clang-23 ca-certificates curl git > /dev/null
+          ${{ matrix.cxx }} --version | head -n 1
+      - uses: actions/checkout@v4
+      - name: Compile upstream tests with -Wall -Wextra -pedantic
+        env:
+          CXX: ${{ matrix.cxx }}
+          STD: ${{ matrix.std }}
+          JOBS: 3
+        run: dev/header-warnings/run.sh "$RUNNER_TEMP/warn"

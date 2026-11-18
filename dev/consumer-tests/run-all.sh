@@ -20,21 +20,23 @@ ROOT=$(cd "$HERE/../.." && pwd)
 WORK=${1:-$(mktemp -d "${TMPDIR:-/tmp}/highway-consumers.XXXXXX")}
 mkdir -p "$WORK"
 WORK=$(cd "$WORK" && pwd)
-LIB="$WORK/lib"
-mkdir -p "$LIB"
-export R_LIBS="$LIB${R_LIBS:+:$R_LIBS}"
+# R on Windows needs Windows-style paths, not Git Bash ones.
+rpath() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else echo "$1"; fi; }
+LIB=$(rpath "$WORK/lib")
+mkdir -p "$WORK/lib"
+export R_LIBS="$LIB"
 export _R_CHECK_CRAN_INCOMING_=FALSE
 export _R_CHECK_CRAN_INCOMING_REMOTE_=FALSE
 cd "$WORK"
 echo "work directory: $WORK"
 
-R CMD build --no-build-vignettes --no-manual "$ROOT" > build-highway.log 2>&1
+R CMD build --no-build-vignettes --no-manual "$(rpath "$ROOT")" > build-highway.log 2>&1
 TARBALL=$(ls highway_*.tar.gz | tail -n 1)
 R CMD INSTALL -l "$LIB" "$TARBALL" > install-highway.log 2>&1
 Rscript -e 'library(highway); cat("highway", format(packageVersion("highway")), "\nsupported:", supported_targets(), "\ncompiled:", compiled_targets(), "\ndispatched:", dispatched_target(), "\n")'
 
 for c in consumerA consumerB consumerC; do
-  Rscript "$HERE/build-consumer.R" "$c" "$WORK" > "build-$c.log" 2>&1
+  Rscript "$(rpath "$HERE/build-consumer.R")" "$c" "$(rpath "$WORK")" > "build-$c.log" 2>&1
 done
 for c in consumerRcpp consumerCpp11; do
   rm -rf "$c"
@@ -63,7 +65,7 @@ for c in consumerA consumerB consumerC consumerRcpp consumerCpp11; do
 done
 
 for mode in normal B-global A-global; do
-  Rscript "$HERE/isolation-test.R" "$mode" > "isolation-$mode.log" 2>&1 || {
+  Rscript "$(rpath "$HERE/isolation-test.R")" "$mode" > "isolation-$mode.log" 2>&1 || {
     status=1; cat "isolation-$mode.log"; }
   tail -n 1 "isolation-$mode.log"
 done

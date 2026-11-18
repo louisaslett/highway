@@ -1,0 +1,41 @@
+# Architectures whose SIMD op headers are not bundled (POWER, s390x, RISC-V):
+# the package must still build and pass its tests there, using Highway's
+# portable EMU128 target. Runs Debian's R under QEMU user emulation.
+name: other-arches
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qemu:
+    name: ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ppc64le, s390x, riscv64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.arch }}
+      - name: Build, install and test under emulation
+        run: |
+          docker run --rm --platform linux/${{ matrix.arch }} \
+            -v "$PWD:/pkg:ro" debian:testing bash -c '
+              set -e
+              apt-get update -qq
+              DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+                r-base-dev r-cran-tinytest > /dev/null
+              uname -m; g++ --version | head -n 1; R --version | head -n 1
+              cp -R /pkg /tmp/highway && cd /tmp
+              R CMD build --no-build-vignettes --no-manual highway
+              R CMD INSTALL highway_*.tar.gz
+              Rscript -e "library(highway); cat(\"supported:\", supported_targets(), \"\ncompiled:\", compiled_targets(), \"\ndispatched:\", dispatched_target(), \"\n\"); stopifnot(dispatched_target() %in% c(\"EMU128\", \"SCALAR\")); tinytest::test_package(\"highway\")"
+            '
