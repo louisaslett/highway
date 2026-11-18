@@ -1,0 +1,37 @@
+Package: highway
+Type: Package
+Title: 'Highway' 'C++' Headers for Portable 'SIMD' with Runtime Dispatch
+Version: 1.4.0-1
+Authors@R: c(
+    person("Louis", "Aslett", role = c("aut", "cre"),
+           email = "louis.aslett@durham.ac.uk",
+           comment = c(ORCID = "0000-0003-2211-233X")),
+    person("Google LLC", role = "cph",
+           comment = "Bundled 'Highway' library (inst/include/hwy)"),
+    person("Arm Limited and/or its affiliates", role = "cph",
+           comment = "Parts of the bundled 'Highway' library; see inst/COPYRIGHTS"),
+    person("Matthew", "Kolbe", role = "cph",
+           comment = "inst/include/hwy/contrib/unroller/unroller-inl.h"),
+    person("The Highway Project Authors", role = c("ctb", "cph"),
+           comment = "Authors of the bundled 'Highway' library; see inst/COPYRIGHTS"))
+Description: Provides the header files of 'Highway'
+    <https://github.com/google/highway>, a 'C++' library for portable 'SIMD'
+    (single instruction, multiple data) programming, so that other packages
+    can use it through 'LinkingTo'. A kernel is written once and compiled for
+    several instruction sets, such as 'SSE2', 'SSE4', 'AVX2' and 'AVX-512' on
+    'x86-64' and 'NEON' and 'SVE' on 'ARM64', and the best one supported by the
+    running processor is chosen at run time, so binary packages need no
+    processor-specific compiler flags. Also provides a single-file
+    implementation of the dispatch runtime, error handling that follows R's
+    rules for compiled code, guards that turn 'C++' exceptions into R errors
+    or status codes at '.Call' and 'C' interfaces, and use_highway() to set up
+    a package.
+License: BSD_3_clause + file LICENSE
+Copyright: See inst/COPYRIGHTS for the bundled 'Highway' library.
+URL: https://github.com/louisaslett/highway
+BugReports: https://github.com/louisaslett/highway/issues
+Depends: R (>= 4.4.0)
+Suggests: tinytest, knitr, rmarkdown
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.1

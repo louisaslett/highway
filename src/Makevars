@@ -1,0 +1,6 @@
+# -I../inst/include: this package's own copy of the headers (consumer
+#   packages get them through 'LinkingTo: highway' instead).
+# -I.: lets hwy/foreach_target.h re-include demo_kernels.cpp via
+#   HWY_TARGET_INCLUDE, which is resolved against the include path.
+PKG_CPPFLAGS = -I../inst/include -I.
+PKG_CXXFLAGS = $(CXX_VISIBILITY)
