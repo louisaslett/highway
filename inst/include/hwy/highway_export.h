@@ -13,10 +13,13 @@
 // R package 'highway' (local patch 0002): every consumer package compiles its
 // own copy of Highway's runtime (highway/impl.h). Hidden visibility keeps
 // those copies private to each package's shared object, so packages loaded
-// into the same R session cannot bind to each other's dispatch state.
+// into the same R session cannot bind to each other's dispatch state or
+// handlers. HWY_CONTRIB_DLLEXPORT (only used on the stateless class
+// hwy::ImageBase) keeps default visibility: hiding a base class makes GCC
+// warn about every derived hwy::Image<T> in consumer code (-Wattributes).
 #include "highway/visibility.h"
 #define HWY_DLLEXPORT HIGHWAY_HIDDEN
-#define HWY_CONTRIB_DLLEXPORT HIGHWAY_HIDDEN
+#define HWY_CONTRIB_DLLEXPORT
 #define HWY_TEST_DLLEXPORT HIGHWAY_HIDDEN
 #else  // !HWY_SHARED_DEFINE
 
