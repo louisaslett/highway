@@ -1,0 +1,49 @@
+# R session / IDE
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Rapp.history
+*.Rproj
+
+# Build and check artefacts
+*.tar.gz
+*.tgz
+*.zip
+*.Rcheck/
+check/
+revdep/
+/doc/
+/Meta/
+docs/
+inst/doc/
+
+# Compiled objects
+src/*.o
+src/*.so
+src/*.dll
+src/*.dylib
+src/symbols.rds
+*.o
+*.so
+*.dll
+*.dylib
+
+# Project-local Makevars for strict-flag builds (never commit)
+dev/Makevars.strict
+dev/*.Makevars
+.Makevars.local
+
+# Vignette build intermediates
+vignettes/*.html
+vignettes/*.pdf
+vignettes/*_files/
+vignettes/*_cache/
+
+# Update tooling scratch space
+tools/.cache/
+tools/upstream/
+
+# Local tooling
+.claude/settings.local.json
+.DS_Store
