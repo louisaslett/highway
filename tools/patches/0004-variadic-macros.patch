@@ -1,0 +1,24 @@
+# Subject: HWY_WARN/HWY_ABORT take (...) instead of (format, ...) with ##__VA_ARGS__
+# Why: The GNU ',##__VA_ARGS__' extension triggers clang -pedantic warnings in every consumer.
+#
+diff --git a/hwy/base.h b/hwy/base.h
+index 368e523..701d9e5 100644
+--- a/hwy/base.h
++++ b/hwy/base.h
+@@ -340,11 +340,12 @@ HWY_DLLEXPORT HWY_NORETURN void HWY_FORMAT(3, 4)
+ 
+ #endif  // HWY_HEADER_ONLY
+ 
+-#define HWY_WARN(format, ...) \
+-  ::hwy::Warn(__FILE__, __LINE__, format, ##__VA_ARGS__)
++// R package 'highway' (local patch 0004): the format string is part of
++// __VA_ARGS__, avoiding the GNU ',##__VA_ARGS__' extension that clang
++// reports under -pedantic (-Wgnu-zero-variadic-macro-arguments).
++#define HWY_WARN(...) ::hwy::Warn(__FILE__, __LINE__, __VA_ARGS__)
+ 
+-#define HWY_ABORT(format, ...) \
+-  ::hwy::Abort(__FILE__, __LINE__, format, ##__VA_ARGS__)
++#define HWY_ABORT(...) ::hwy::Abort(__FILE__, __LINE__, __VA_ARGS__)
+ 
+ // Always enabled.
+ #define HWY_ASSERT_M(condition, msg)               \

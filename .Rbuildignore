@@ -1,0 +1,16 @@
+^\.claude$
+^\.github$
+^\.gitignore$
+^\.gitattributes$
+^.*\.Rproj$
+^\.Rproj\.user$
+^dev$
+^tools/update_highway\.sh$
+^tools/\.cache$
+^README\.Rmd$
+^cran-comments\.md$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^revdep$
+^CRAN-SUBMISSION$

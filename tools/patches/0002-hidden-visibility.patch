@@ -1,0 +1,25 @@
+# Subject: HWY_DLLEXPORT uses hidden visibility in non-shared builds
+# Why: Each consumer package compiles its own copy of the runtime (highway/impl.h); hidden symbols keep copies in different packages from binding to each other.
+#
+diff --git a/hwy/highway_export.h b/hwy/highway_export.h
+index 30edc17..97dbe9e 100644
+--- a/hwy/highway_export.h
++++ b/hwy/highway_export.h
+@@ -10,9 +10,14 @@
+ #define HWY_DLLEXPORT_H
+ 
+ #if !defined(HWY_SHARED_DEFINE)
+-#define HWY_DLLEXPORT
+-#define HWY_CONTRIB_DLLEXPORT
+-#define HWY_TEST_DLLEXPORT
++// R package 'highway' (local patch 0002): every consumer package compiles its
++// own copy of Highway's runtime (highway/impl.h). Hidden visibility keeps
++// those copies private to each package's shared object, so packages loaded
++// into the same R session cannot bind to each other's dispatch state.
++#include "highway/visibility.h"
++#define HWY_DLLEXPORT HIGHWAY_HIDDEN
++#define HWY_CONTRIB_DLLEXPORT HIGHWAY_HIDDEN
++#define HWY_TEST_DLLEXPORT HIGHWAY_HIDDEN
+ #else  // !HWY_SHARED_DEFINE
+ 
+ #ifndef HWY_DLLEXPORT

@@ -1,0 +1,154 @@
+# Subject: Default Abort() throws highway::abort_error; default Warn() is silent
+# Why: CRAN policy and Writing R Extensions: compiled code must not write to stdout/stderr or terminate R (abort/exit). Warn() may run on non-R threads, so it must not call R either.
+#
+diff --git a/hwy/abort.cc b/hwy/abort.cc
+index a67819b..59acb21 100644
+--- a/hwy/abort.cc
++++ b/hwy/abort.cc
+@@ -2,22 +2,22 @@
+ // Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+ // SPDX-License-Identifier: Apache-2.0
+ // SPDX-License-Identifier: BSD-3-Clause
++//
++// Modified for the R package 'highway' (local patch 0001): compiled code in
++// an R package must not write to stderr or terminate the R process. The
++// default Warn() is therefore silent and the default Abort() throws
++// highway::abort_error instead of printing and calling abort()/exit().
+ 
+ #include "hwy/abort.h"
+ 
+ #include <stdarg.h>
+-#include <stdio.h>
+-#include <stdlib.h>
++#include <stdio.h>  // vsnprintf
+ 
+ #include <atomic>
+-#include <string>
+ 
++#include "highway/abort_error.h"
+ #include "hwy/base.h"
+ 
+-#if HWY_IS_ASAN || HWY_IS_MSAN || HWY_IS_TSAN
+-#include "sanitizer/common_interface_defs.h"  // __sanitizer_print_stack_trace
+-#endif
+-
+ namespace hwy {
+ 
+ namespace {
+@@ -32,9 +32,15 @@ std::atomic<AbortFunc>& AtomicAbortFunc() {
+   return func;
+ }
+ 
+-std::string GetBaseName(std::string const& file_name) {
+-  auto last_slash = file_name.find_last_of("/\\");
+-  return file_name.substr(last_slash + 1);
++// Returns a pointer into `file_name` (normally the __FILE__ literal), so the
++// result has static storage duration and can be kept by highway::abort_error.
++const char* GetBaseName(const char* file_name) {
++  if (file_name == nullptr) return "";
++  const char* base = file_name;
++  for (const char* p = file_name; *p != '\0'; ++p) {
++    if (*p == '/' || *p == '\\') base = p + 1;
++  }
++  return base;
+ }
+ 
+ }  // namespace
+@@ -71,11 +77,11 @@ HWY_DLLEXPORT void HWY_FORMAT(3, 4)
+   vsnprintf(buf, sizeof(buf), format, args);
+   va_end(args);
+ 
++  // R package 'highway': no default output. Warn() may run on threads that R
++  // does not own, so the default must not print or call the R API.
+   WarnFunc handler = AtomicWarnFunc().load();
+   if (handler != nullptr) {
+     handler(file, line, buf);
+-  } else {
+-    fprintf(stderr, "Warn at %s:%d: %s\n", GetBaseName(file).data(), line, buf);
+   }
+ }
+ 
+@@ -90,28 +96,11 @@ HWY_DLLEXPORT HWY_NORETURN void HWY_FORMAT(3, 4)
+   AbortFunc handler = AtomicAbortFunc().load();
+   if (handler != nullptr) {
+     handler(file, line, buf);
+-  } else {
+-    fprintf(stderr, "Abort at %s:%d: %s\n", GetBaseName(file).data(), line,
+-            buf);
+   }
+ 
+-// If compiled with any sanitizer, they can also print a stack trace.
+-#if HWY_IS_ASAN || HWY_IS_MSAN || HWY_IS_TSAN
+-  __sanitizer_print_stack_trace();
+-#endif  // HWY_IS_*
+-  fflush(stderr);
+-
+-// Now terminate the program:
+-#if HWY_ARCH_RISCV
+-  exit(1);  // trap/abort just freeze Spike.
+-#elif HWY_IS_DEBUG_BUILD && !HWY_COMPILER_MSVC && !HWY_ARCH_ARM
+-  // Facilitates breaking into a debugger, but don't use this in non-debug
+-  // builds because it looks like "illegal instruction", which is misleading.
+-  // Also does not work on Arm.
+-  __builtin_trap();
+-#else
+-  abort();  // Compile error without this due to HWY_NORETURN.
+-#endif
++  // R package 'highway': never terminate the R process. If no handler is set,
++  // or the handler returns, unwind to the caller's .Call or C guard.
++  throw ::highway::abort_error(GetBaseName(file), line, buf);
+ }
+ 
+ }  // namespace hwy
+diff --git a/hwy/base.h b/hwy/base.h
+index 342bfed..368e523 100644
+--- a/hwy/base.h
++++ b/hwy/base.h
+@@ -32,6 +32,8 @@
+ 
+ #include "hwy/detect_compiler_arch.h"
+ #include "hwy/highway_export.h"
++// R package 'highway' (local patch 0001): exception thrown by Abort().
++#include "highway/abort_error.h"
+ 
+ // API version (https://semver.org/); keep in sync with CMakeLists.txt and
+ // meson.build.
+@@ -285,16 +287,11 @@ namespace hwy {
+ // Abort / Warn
+ 
+ #if defined(HWY_HEADER_ONLY)
++// R package 'highway' (local patch 0001): in header-only mode, Warn() is
++// silent and Abort() throws highway::abort_error; neither writes to stderr
++// nor terminates the R process.
+ HWY_DLLEXPORT inline void HWY_FORMAT(3, 4)
+-    Warn(const char* file, int line, const char* format, ...) {
+-  char buf[800];
+-  va_list args;
+-  va_start(args, format);
+-  vsnprintf(buf, sizeof(buf), format, args);
+-  va_end(args);
+-
+-  fprintf(stderr, "Warn at %s:%d: %s\n", file, line, buf);
+-}
++    Warn(const char* /*file*/, int /*line*/, const char* /*format*/, ...) {}
+ 
+ HWY_DLLEXPORT HWY_NORETURN inline void HWY_FORMAT(3, 4)
+     Abort(const char* file, int line, const char* format, ...) {
+@@ -304,16 +301,7 @@ HWY_DLLEXPORT HWY_NORETURN inline void HWY_FORMAT(3, 4)
+   vsnprintf(buf, sizeof(buf), format, args);
+   va_end(args);
+ 
+-  fprintf(stderr, "Abort at %s:%d: %s\n", file, line, buf);
+-
+-  fflush(stderr);
+-
+-// Now terminate the program:
+-#if HWY_ARCH_RISCV
+-  exit(1);  // trap/abort just freeze Spike.
+-#else
+-  abort();  // Compile error without this due to HWY_NORETURN.
+-#endif
++  throw ::highway::abort_error(file, line, buf);
+ }
+ #else  // !HWY_HEADER_ONLY
+ // Interfaces for custom Warn/Abort handlers.

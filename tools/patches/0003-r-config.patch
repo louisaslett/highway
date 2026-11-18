@@ -1,0 +1,26 @@
+# Subject: Include highway/config.h in detect_targets.h; add HIGHWAY_R_BROKEN_TARGETS
+# Why: Single place for R-specific target restrictions (EMU128 on architectures whose op headers are not bundled; toolchain restrictions).
+#
+diff --git a/hwy/detect_targets.h b/hwy/detect_targets.h
+index 16d59c2..5cd0a39 100644
+--- a/hwy/detect_targets.h
++++ b/hwy/detect_targets.h
+@@ -20,6 +20,8 @@
+ // Defines targets and chooses which to enable.
+ 
+ #include "hwy/detect_compiler_arch.h"
++// R package 'highway' (local patch 0003): R-specific target configuration.
++#include "highway/config.h"
+ 
+ //------------------------------------------------------------------------------
+ // Optional configuration
+@@ -394,7 +396,8 @@
+    HWY_BROKEN_ARM7_BIG_ENDIAN | HWY_BROKEN_ARM7_WITHOUT_VFP4 |             \
+    HWY_BROKEN_NEON_BF16 | HWY_BROKEN_SVE | HWY_BROKEN_SVE2 |               \
+    HWY_BROKEN_SVE2_128 | HWY_BROKEN_PPC10 | HWY_BROKEN_PPC_32BIT |         \
+-   HWY_BROKEN_RVV | HWY_BROKEN_LOONGARCH | HWY_BROKEN_Z14)
++   HWY_BROKEN_RVV | HWY_BROKEN_LOONGARCH | HWY_BROKEN_Z14 |                \
++   HIGHWAY_R_BROKEN_TARGETS)  // R package 'highway' (local patch 0003)
+ 
+ #endif  // HWY_BROKEN_TARGETS
+ 

@@ -1,0 +1,22 @@
+# Subject: HWY_DIAGNOSTICS and HWY_DIAGNOSTICS_OFF expand to nothing for GCC/Clang
+# Why: CRAN policy: packages should not attempt to disable compiler diagnostics. Warnings these hid are fixed at source by other patches.
+#
+diff --git a/hwy/base.h b/hwy/base.h
+index 8a43f72..07476b6 100644
+--- a/hwy/base.h
++++ b/hwy/base.h
+@@ -142,8 +142,12 @@
+ #define HWY_UNREACHABLE
+ #endif
+ #define HWY_PRAGMA(tokens) _Pragma(#tokens)
+-#define HWY_DIAGNOSTICS(tokens) HWY_PRAGMA(GCC diagnostic tokens)
+-#define HWY_DIAGNOSTICS_OFF(msc, gcc) HWY_DIAGNOSTICS(gcc)
++// R package 'highway' (local patch 0007): CRAN policy asks packages not to
++// disable compiler diagnostics, so Highway's diagnostic push/pop/ignore
++// pragmas are compiled out for GCC and Clang. Warnings they used to hide are
++// fixed at source by other local patches.
++#define HWY_DIAGNOSTICS(tokens)
++#define HWY_DIAGNOSTICS_OFF(msc, gcc)
+ // Encountered "attribute list cannot appear here" when using the C++17
+ // [[maybe_unused]], so only use the old style attribute for now.
+ #define HWY_MAYBE_UNUSED __attribute__((unused))

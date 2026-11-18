@@ -1,0 +1,19 @@
+# Subject: Use sizeof(v.raw) in IsConstantX86Vec
+# Why: Avoids GCC -Wignored-attributes (attributed intrinsic type as template argument), previously hidden by a diagnostic pragma.
+#
+diff --git a/hwy/ops/x86_128-inl.h b/hwy/ops/x86_128-inl.h
+index f29b6e3..fa031a4 100644
+--- a/hwy/ops/x86_128-inl.h
++++ b/hwy/ops/x86_128-inl.h
+@@ -614,8 +614,9 @@ static HWY_INLINE HWY_MAYBE_UNUSED bool IsConstantX86Vec(
+   // RemoveCvRef<decltype(v.raw)> with GCC
+   HWY_DIAGNOSTICS(push)
+   HWY_DIAGNOSTICS_OFF(disable : 4649, ignored "-Wignored-attributes")
+-  typedef RawVecLaneT GccRawVec
+-      __attribute__((__vector_size__(sizeof(RemoveCvRef<decltype(v.raw)>))));
++  // R package 'highway' (local patch 0006): sizeof(v.raw) avoids passing the
++  // attributed intrinsic type as a template argument (-Wignored-attributes).
++  typedef RawVecLaneT GccRawVec __attribute__((__vector_size__(sizeof(v.raw))));
+   HWY_DIAGNOSTICS(pop)
+ 
+   return IsConstantRawX86Vec(num_of_lanes_tag,
