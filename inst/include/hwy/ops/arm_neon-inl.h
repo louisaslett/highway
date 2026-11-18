@@ -1203,8 +1203,12 @@ HWY_API VFromD<D> Undefined(D /*tag*/) {
 #if HWY_HAS_BUILTIN(__builtin_nondeterministic_value)
   return VFromD<D>{__builtin_nondeterministic_value(Zero(D()).raw)};
 #else
-  VFromD<D> v;
-  return v;
+  // R package 'highway' (local patch 0009): an uninitialised vector makes GCC
+  // report -Wmaybe-uninitialized wherever it is used (upstream silenced this
+  // with a pragma, compiled out by patch 0007). Zero is a valid "undefined"
+  // value, as in the EMU128 and SCALAR back ends, and costs at most one
+  // instruction.
+  return Zero(D());
 #endif
 }
 

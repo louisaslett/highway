@@ -49,7 +49,10 @@ xargs -P "$JOBS" -I{} sh -c 'f={}; b=$(echo "$f" | tr / _); $CXX -std=$STD -O2 -
 cd ..
 cat logs/*.log | grep -E '^(\./)?hwy/[^:]+:[0-9]+:[0-9]+: (warning|error):' | sed 's|^\./||' > diag.txt || true
 awk -F: 'NR==FNR{s[$0]=1; next} ($1 in s)' shipped.txt diag.txt | sort | uniq -c | sort -rn > shipped-diag.txt
-echo "$CXX -std=$STD: $(wc -l < files.txt) files compiled, $(wc -l < shipped-diag.txt | tr -d ' ') distinct diagnostics in shipped files"
+# Warnings located in compiler or system headers (e.g. arm_neon.h) are reached
+# through inlined Highway code and would appear in consumer builds too.
+cat logs/*.log | grep -E '^/[^:]+:[0-9]+:[0-9]+: (warning|error):' | sort | uniq -c | sort -rn >> shipped-diag.txt || true
+echo "$CXX -std=$STD: $(wc -l < files.txt) files compiled, $(wc -l < shipped-diag.txt | tr -d ' ') distinct diagnostics in shipped or system headers"
 status=0
 if [ -s failed.txt ]; then echo "compile failures:"; cat failed.txt; for f in $(cat failed.txt); do tail -n 20 "logs/$(echo "$f" | tr / _).log"; done; status=1; fi
 if [ -s shipped-diag.txt ]; then cat shipped-diag.txt; status=1; fi

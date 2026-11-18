@@ -24,6 +24,7 @@ jobs:
         run: |
           Rscript -e 'install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))'
           Rscript -e 'pak::pak("r-wasm/rwasm")'
-          Rscript -e 'rwasm::build(paste0("local::", normalizePath(".")), out_dir = "webr-repo")'
+          mkdir -p webr-repo
+          Rscript -e 'rwasm::build(paste0("local::", normalizePath(".")), out_dir = normalizePath("webr-repo"))'
           find webr-repo -name 'highway*' | head
-          test -n "$(find webr-repo -name 'highway_*.tgz' -o -name 'highway_*.tar.gz' | head -n 1)"
+          test -n "$(find webr-repo -name 'highway*.tgz' | head -n 1)"

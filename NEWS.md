@@ -25,6 +25,8 @@
     policy).
   - 0008: format-string checking uses the GNU archetype on MinGW (Rtools),
     avoiding false `-Wformat` warnings.
+  - 0009: on Arm NEON with GCC, `Undefined()` returns a zero vector,
+    avoiding `-Wmaybe-uninitialized` warnings.
 * Not bundled: tests, sorting (`vqsort`), the thread pool, the random number
   generator, benchmarking helpers, and the SIMD back ends for POWER, s390x,
   RISC-V, LoongArch and WebAssembly (those architectures use Highway's
