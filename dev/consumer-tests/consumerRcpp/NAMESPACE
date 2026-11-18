@@ -1,0 +1,5 @@
+useDynLib(consumerRcpp, .registration = TRUE)
+importFrom(Rcpp, evalCpp)
+export(rcpp_hwy_exp)
+export(rcpp_hwy_target)
+export(rcpp_hwy_abort)

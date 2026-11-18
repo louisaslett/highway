@@ -1,0 +1,5 @@
+useDynLib({{P}}, .registration = TRUE)
+export(hw_add)
+export(hw_exp)
+export(hw_abort)
+export(hw_null_args)

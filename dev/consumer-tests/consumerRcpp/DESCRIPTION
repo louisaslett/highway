@@ -1,0 +1,13 @@
+Package: consumerRcpp
+Type: Package
+Title: Test Consumer of the 'highway' Package Using 'Rcpp'
+Version: 0.0.1
+Authors@R: person("Louis", "Aslett", role = c("aut", "cre"),
+    email = "louis.aslett@durham.ac.uk")
+Description: Integration test for 'highway': 'SIMD' kernels with runtime
+    dispatch called from 'Rcpp' code in the same translation unit. Not for
+    CRAN.
+License: BSD_3_clause + file LICENSE
+Imports: Rcpp
+LinkingTo: Rcpp, highway
+Encoding: UTF-8

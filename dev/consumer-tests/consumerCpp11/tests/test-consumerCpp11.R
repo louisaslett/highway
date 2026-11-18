@@ -1,0 +1,12 @@
+library(consumerCpp11)
+cat("consumerCpp11 static target:", cpp11_hwy_target(), "\n")
+x <- c(seq(-745, 709, length.out = 4001), 0, -0, NA, NaN, Inf, -Inf)
+y <- cpp11_hwy_exp(x)
+r <- exp(x)
+stopifnot(identical(is.na(y), is.na(r)), identical(is.nan(y), is.nan(r)),
+          identical(y[!is.finite(r)], r[!is.finite(r)]),
+          isTRUE(all.equal(y, r, tolerance = 4 * .Machine$double.eps)))
+msg <- tryCatch({ cpp11_hwy_abort(2L); "no error" }, error = conditionMessage)
+stopifnot(grepl("consumerCpp11 abort (code 2)", msg, fixed = TRUE))
+cpp11_hwy_abort(0L)
+cat("consumerCpp11: all tests passed\n")

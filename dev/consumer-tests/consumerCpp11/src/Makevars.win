@@ -1,0 +1,2 @@
+# Static dispatch only: no highway/impl.h, so Highway must be header-only.
+PKG_CPPFLAGS = -DHWY_HEADER_ONLY

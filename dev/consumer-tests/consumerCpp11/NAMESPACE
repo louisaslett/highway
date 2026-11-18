@@ -1,0 +1,4 @@
+useDynLib(consumerCpp11, .registration = TRUE)
+export(cpp11_hwy_exp)
+export(cpp11_hwy_target)
+export(cpp11_hwy_abort)

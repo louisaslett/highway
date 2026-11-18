@@ -1,0 +1,12 @@
+Package: consumerCpp11
+Type: Package
+Title: Test Consumer of the 'highway' Package Using 'cpp11'
+Version: 0.0.1
+Authors@R: person("Louis", "Aslett", role = c("aut", "cre"),
+    email = "louis.aslett@durham.ac.uk")
+Description: Integration test for 'highway': static dispatch only
+    (HWY_HEADER_ONLY, no compiled runtime) called from 'cpp11' code. Not for
+    CRAN.
+License: BSD_3_clause + file LICENSE
+LinkingTo: cpp11, highway
+Encoding: UTF-8
