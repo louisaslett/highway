@@ -405,6 +405,13 @@ knitr/rmarkdown the vignette is not rebuilt (standard behaviour with
    0002 was narrowed: hiding `hwy::ImageBase` made GCC warn
    (`-Wattributes`) for every `hwy::Image<T>`; `ImageBase` is stateless, so
    only the runtime functions (`HWY_DLLEXPORT`) are hidden.
+1b. **Patch 0009 (NEON `Undefined()`).** With the suppression pragmas gone,
+   GCC 16 on arm64 reported `-Wmaybe-uninitialized` wherever an
+   `Undefined()` vector was consumed (upstream's `highway_test.cc` stores
+   one), partly located inside GCC's `arm_neon.h`. On GCC, NEON's
+   `Undefined()` now returns `Zero()`, as EMU128 and SCALAR already do (clang
+   keeps `__builtin_nondeterministic_value`). The sweep script now also
+   fails on warnings located in compiler or system headers.
 2. **Warning sweep** (upstream op and contrib tests, 86 translation units,
    `-O2 -Wall -Wextra -pedantic`, suppression compiled out): 0 warnings in
    shipped files with Apple clang 21 (arm64, x86_64), GCC 16.2 (x86_64 after

@@ -54,7 +54,17 @@ write only to `tempdir()`.
 
 ## Test environments
 
-(Filled in from `dev/check-results/` at hand-off.)
+* local: macOS 26 arm64 (Apple M1), R 4.6.2, Apple clang 21.
+* GitHub Actions: Ubuntu 26.04 x86-64 (R-devel, R 4.6.2, R 4.5, R 4.4;
+  GCC 15.2), Ubuntu 24.04 arm64 (R 4.6.2), macOS arm64 and x86_64 (R 4.6.2),
+  Windows Server (R-devel and R 4.6.2, Rtools GCC 14.3).
+* R-hub v2: gcc-asan, clang-asan, clang-ubsan, valgrind, gcc16, clang23,
+  lto, donttest, nosuggests, m1-san.
+* win-builder: R-devel, R-release, R-oldrelease.
+* Debian testing under QEMU: ppc64le, s390x, riscv64.
+* The test suite was also run under Intel SDE emulating Haswell, Skylake-X,
+  Ice Lake, Sapphire Rapids and Diamond Rapids CPUs, so that every x86
+  instruction-set version of the kernels is exercised.
 
 ## R CMD check results
 
