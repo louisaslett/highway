@@ -31,7 +31,7 @@ There are various ways to write SIMD code: in assembly (rarely!); with compiler 
 tying the code to one CPU family); or perhaps most commonly with a C or C++
 library such as [`SIMDe`](https://github.com/simd-everywhere/simde),
 [`EVE`](https://github.com/jfalcou/eve) or
-[`std::experimental::simd`](https://en.cppreference.com/w/cpp/experimental/simd).
+[`std::experimental::simd`](https://en.cppreference.com/cpp/experimental/simd).
 These libraries work across CPU families, but they do not support so-called
 "runtime dispatch" ... in other words, the target instruction set must be chosen
 at compile time.
