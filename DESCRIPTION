@@ -22,8 +22,8 @@ Description: Provides the header files of 'Highway'
     'x86-64' and 'NEON' and 'SVE' on 'ARM64', and the best one supported by the
     running processor is chosen at run time, so binary packages need no
     processor-specific compiler flags. Also provides a single-file
-    implementation of the dispatch runtime, error handling that follows R's
-    rules for compiled code, guards that turn 'C++' exceptions into R errors
+    implementation of the dispatch runtime, error handling that never
+    terminates the R session, guards that turn 'C++' exceptions into R errors
     or status codes at '.Call' and 'C' interfaces, and use_highway() to set up
     a package.
 License: BSD_3_clause + file LICENSE

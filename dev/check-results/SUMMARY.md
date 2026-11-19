@@ -1,6 +1,6 @@
 # Pre-submission summary: highway 1.4.0-1
 
-Final commit checked: `bc38cec` (2026-11-18). CI runs:
+Final commit checked: `bc38cec` (2026-11-18); later commits change only documentation and the DESCRIPTION wording. CI runs:
 <https://github.com/louisaslett/highway/actions>.
 
 ## Check matrix
@@ -25,8 +25,8 @@ the only incoming NOTE is "New submission").
 | Header warning sweep: upstream op and contrib tests (86 TUs), `-O2 -Wall -Wextra -pedantic` | n/a | GCC 16.2, clang 23 (x86-64 C++17/C++20, arm64 C++20) | 0 diagnostics in shipped files or system headers, all six configurations |
 | Consumers A, B, C, Rcpp, cpp11 (`R CMD check --as-cran`, incoming off) | release | Linux x86-64/arm64, macOS arm64/x86-64, Windows | Status: OK, all 25 |
 | Two consumers in one session (normal, A with RTLD_GLOBAL, B with RTLD_GLOBAL) | release | all five OS runners | pass |
-| win-builder: R-devel, R-release, R-oldrelease | | | submitted; results emailed to the maintainer |
-| mac-builder | | | not run: service returned HTTP 502 all afternoon |
+| win-builder: R-devel (r90926), R 4.6.2, R 4.5.3 (tarball from `ba0c234`) | as listed | Rtools GCC 14.3 | 1 NOTE each: "New submission" and "Possibly misspelled words in DESCRIPTION: R's". The wording was changed afterwards (no apostrophe); re-run win-builder R-devel before submitting. Tests dispatched AVX2 and forced AVX2, SSE4, SSSE3, SSE2. |
+| mac-builder | | | not run: submission API returned HTTP 502 on 2026-11-18 and 2026-11-19 |
 | `spelling::spell_check_package()`, `urlchecker::url_check()` | | | clean |
 
 ## Target coverage

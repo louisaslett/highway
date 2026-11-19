@@ -11,4 +11,4 @@ Results gathered before submission (paths to the local machine replaced by
 | `local-spelling-urls.txt` | `spelling::spell_check_package()`, `urlchecker::url_check()` |
 | `local-sanitizers-macos-arm64.txt` | `dev/sanitizers/run.sh` (TSan, ASan+UBSan) |
 | `local-consumers-macos-arm64.txt` | `dev/consumer-tests/run-all.sh` |
-| `win-builder-*.txt`, `mac-builder-*.txt` | Results from the CRAN-run build services |
+| `win-builder-*.txt` | win-builder `00check.log` for R-devel, R-release and R-oldrelease |
