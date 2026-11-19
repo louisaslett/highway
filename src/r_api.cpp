@@ -224,7 +224,7 @@ SEXP hwy_test_threads(SEXP x, SEXP nthreads, SEXP cold) {
     std::atomic<int> ready{0};
     std::atomic<bool> cancel{false};
     std::vector<std::thread> pool;
-    // Joins whatever was started, also if starting a later thread throws.
+    // Joins any started threads, even if starting a later thread throws.
     struct Joiner {
       std::vector<std::thread>& threads;
       std::atomic<bool>& cancel;

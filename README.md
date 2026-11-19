@@ -13,11 +13,12 @@ The **highway** package bundles the headers of
 portable SIMD (single instruction, multiple data) programming, so that R
 packages can use it through `LinkingTo: highway`.
 
-You write a kernel once. Highway compiles it for several instruction sets
-(SSE2, SSE4, AVX2 and AVX-512 on x86-64; NEON and SVE on arm64), and at run
-time it calls the best one the user's CPU supports. Binary packages built by
-CRAN therefore get AVX2 or AVX-512 speed where the hardware has it, without
-any CPU-specific compiler flags.
+Kernels are written in C++, and Highway compiles them for several instruction
+sets (SSE2, SSE4, AVX2 and AVX-512 on x86-64; NEON and SVE on arm64). Then, at
+run time the best one supported by the user's CPU is automatically used. This
+enables binary packages built by CRAN to get AVX2 or AVX-512 speed where the
+hardware has it, without any CPU-specific compiler flags that would result in
+rejection by CRAN.
 
 ## Quick start
 
@@ -41,14 +42,15 @@ any CPU-specific compiler flags.
    }
    ```
 
-3. Call them from R through Rcpp, cpp11 or `.Call`
+3. Call them from R through any of Rcpp, cpp11 or plain `.Call`
    (`highway/r_guard.h` turns C++ exceptions into R errors).
 
-The vignette, `vignette("highway")`, walks through static and dynamic
-dispatch, transcendental functions, `NA` handling, integers, C packages,
-threads and the CRAN checklist.
+The vignette, `vignette("highway")`, walks through more details such as static
+and dynamic dispatch, transcendental functions, `NA` handling, integers, C
+packages, threads and the CRAN checklist.
 
-This package's own functions report on the bundled library and the CPU:
+You can use functions in this package to report on the bundled Highway library
+version and to find details of instruction sets supported by your CPU:
 
 ```r
 library(highway)
@@ -62,19 +64,19 @@ hwy_demo_exp(c(0, 1, NA))
 
 * `inst/include/hwy/`: Highway's headers with the upstream layout, so
   `#include "hwy/highway.h"` and upstream documentation work unchanged.
-  Included: the core, all x86 and Arm back ends, the portable EMU128 and
+  This includes the core, all x86 and Arm back ends, the portable EMU128 and
   scalar back ends, and the header-only contrib modules `math`, `algo`,
   `dot`, `bit_pack`, `image` and `unroller`.
-* `inst/include/highway/`: this package's additions: `impl.h` (Highway's
-  compiled runtime, included in exactly one file per package), `r_guard.h`
-  and `c_guard.h` (exception guards for `.Call` and C interfaces),
-  `runtime.h` (`highway::warm_up()`), and `config.h`.
-* `use_highway()`, plus `highway_version()`, `supported_targets()`,
+* `inst/include/highway/`: additions specific to this package, namely
+  `impl.h` (Highway's compiled runtime, included in exactly one file per
+  package), `r_guard.h` and `c_guard.h` (exception guards for `.Call` and C
+  interfaces), `runtime.h` (`highway::warm_up()`), and `config.h`.
+* R function `use_highway()`, plus `highway_version()`, `supported_targets()`,
   `compiled_targets()`, `dispatched_target()` and three demonstration
   kernels.
 
-The bundled copy is patched so that Highway never writes to `stderr` or
-terminates R (its abort handler throws `highway::abort_error` instead), its
+The bundled library is patched so that Highway never writes to `stderr` or
+terminates R (the abort handler throws `highway::abort_error` instead), its
 runtime symbols are private to each package, and it does not suppress
 compiler warnings. All changes are listed in `inst/COPYRIGHTS` and kept as
 patch files in `tools/patches/`.
@@ -91,7 +93,7 @@ patch files in `tools/patches/`.
 `HIGHWAY_TARGETS_LEAN` reduces the list to the most useful targets, to
 shorten installation.
 
-## Version scheme
+## Versioning scheme
 
 The package version is `<Highway version>-<packaging revision>`, following
 BH and RcppArmadillo: `1.4.0-1` is the first release bundling Highway
@@ -101,14 +103,14 @@ version.
 
 ## Citing
 
-Please cite Highway itself if you use it in published work, for example
-"Highway: performance-portable SIMD with runtime dispatch,
-<https://github.com/google/highway>" (see the upstream repository for the
-preferred form), and this package with `citation("highway")`.
+If you use this package in published work, please cite both Highway itself
+(upstream does not suggest a citation, so e.g. Highway, Google LLC and
+contributors, <https://github.com/google/highway>), and this package using
+`citation("highway")`.
 
 ## Licence
 
-The package and the bundled Highway code are distributed under the BSD
+This package and the bundled Highway code are distributed under the BSD
 3-Clause License. Highway is dual-licensed by its authors under the Apache
 License 2.0 or the BSD 3-Clause License; this package uses the BSD 3-Clause
 option, which is compatible with GPL-2 packages. Copyright in Highway belongs

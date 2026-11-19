@@ -14,7 +14,7 @@ Authors@R: c(
            comment = "inst/include/hwy/contrib/unroller/unroller-inl.h"),
     person("The Highway Project Authors", role = c("ctb", "cph"),
            comment = "Authors of the bundled 'Highway' library; see inst/COPYRIGHTS"))
-Description: Provides the header files of 'Highway'
+Description: Provides the header files of Google 'Highway'
     <https://github.com/google/highway>, a 'C++' library for portable 'SIMD'
     (single instruction, multiple data) programming, so that other packages
     can use it through 'LinkingTo'. A kernel is written once and compiled for

@@ -31,9 +31,10 @@ Names are paths relative to \code{path}.
 \description{
 Prepares the package at \code{path} to use the bundled 'Highway' headers with
 runtime dispatch, in the style of \code{cpp11::use_cpp11()} and
-\code{usethis::use_rcpp()}. It
+\code{usethis::use_rcpp()}.
 }
 \details{
+This function:
 \itemize{
 \item adds \code{highway} to the \code{LinkingTo} field of \code{DESCRIPTION};
 \item creates \code{src/highway-impl.cpp}, the one file that includes

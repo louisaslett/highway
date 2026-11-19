@@ -2,7 +2,9 @@
 #'
 #' Prepares the package at `path` to use the bundled 'Highway' headers with
 #' runtime dispatch, in the style of `cpp11::use_cpp11()` and
-#' `usethis::use_rcpp()`. It
+#' `usethis::use_rcpp()`.
+#'
+#' This function:
 #'
 #' * adds `highway` to the `LinkingTo` field of `DESCRIPTION`;
 #' * creates `src/highway-impl.cpp`, the one file that includes

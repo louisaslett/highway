@@ -14,30 +14,40 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(highway)
 ```
 
-This vignette shows how to write fast, portable SIMD code in an R package
-with the 'Highway' C++ library, bundled in this package. Every C++ listing
-below is shown, not compiled, while the vignette is built; the output comes
-from the small kernels compiled into this package itself.
+This package bundles the [Google Highway](https://github.com/google/highway) C++
+library so that R packages can use fast, portable SIMD code through
+`LinkingTo`. Every C++ listing below is for display purposes when the
+vignette is built, whilst the R output shown comes from small functions
+compiled into this package itself.
 
-# 1. Why this package
+# 1. Why this package?
 
 SIMD instructions (*single instruction, multiple data*) process several
-numbers at once: one AVX2 instruction adds four doubles, one AVX-512
-instruction adds eight. For numeric kernels that is often a 2 to 8 times
-speed-up over plain loops.
+numbers at once: e.g., one AVX2 instruction adds four doubles, one AVX-512
+instruction adds eight. For computationally heavy code this can often give a 2
+to 8 times speed-up over plain C/C++ loops.
 
-The catch for R packages is that the instruction set has to be chosen at
-**run time**. CRAN builds binary packages once, for every user's machine,
-without CPU-specific compiler flags, so the compiler may only assume the
-baseline: SSE2 on x86-64 and NEON on arm64. Code compiled with `-mavx2` would
-crash with "illegal instruction" on a CPU without AVX2, and CRAN does not
-allow such flags anyway.
+There are various ways to write SIMD code: in assembly (rarely!); with compiler intrinsics (C or C++ functions that map directly to individual CPU instructions,
+tying the code to one CPU family); or perhaps most commonly with a C or C++
+library such as [`SIMDe`](https://github.com/simd-everywhere/simde),
+[`EVE`](https://github.com/jfalcou/eve) or
+[`std::experimental::simd`](https://en.cppreference.com/w/cpp/experimental/simd).
+These libraries work across CPU families, but they do not support so-called
+"runtime dispatch" ... in other words, the target instruction set must be chosen
+at compile time.
 
-[Highway](https://github.com/google/highway) solves this. You write a kernel
-once, against Highway's portable vector API. Highway compiles it once per
-*target* (instruction set) inside the same shared object, using per-function
-target attributes instead of compiler flags, and at run time
-`HWY_DYNAMIC_DISPATCH` calls the best version that the CPU supports.
+However, CRAN builds Windows and macOS binary packages once, for every user's
+machine, without CPU-specific compiler flags. Hence, the compiler can only
+assume a baseline capability: typically SSE2 on x86-64 and NEON on arm64. Code
+compiled with `-mavx2` would crash with "illegal instruction" on a CPU without
+AVX2, and CRAN does not allow such flags anyway! So for R packages we need a
+way for the instruction set to be chosen at **run time**.
+
+With Google Highway, you write a C++ function (called a *kernel*) once using
+the Highway SIMD operations. The function is then compiled separately for each
+*target* (instruction set) without needing CPU-specific compiler flags (so no
+CRAN issue), and at run time Highway automatically calls the best version that
+the CPU supports.
 
 On the machine that built this vignette:
 
@@ -49,11 +59,19 @@ dispatched_target()   # what they actually use here
 
 `EMU128` and `SCALAR` are portable fallbacks that need no SIMD instructions.
 
-# 2. Quick start in three steps
+Other C and C++ libraries, such as
+[`xsimd`](https://github.com/xtensor-stack/xsimd) and
+[`libsimdpp`](https://github.com/p12tic/libsimdpp), also support runtime
+dispatch, but using that dispatch in an R package is difficult because to the
+best of the author's knowledge they generally require compiling separate source
+files with CPU-specific compiler flags, which `R CMD check` reports as a
+warning.
+
+# 2. Quick start
 
 **Step 1: set up the package.** In the root of your package, run
-`highway::use_highway()`. Here it is on a fresh package in a temporary
-directory:
+`highway::use_highway()`. For example, running it on a minimal package in a
+temporary directory produces the following:
 
 ```{r quickstart}
 pkg <- file.path(tempdir(), "mysimd")
@@ -83,10 +101,11 @@ unlink(pkg, recursive = TRUE)
 * `highway-kernels.cpp` and `highway-kernels.h` hold two example kernels
   (`add_doubles()` and `exp_doubles()`).
 
-**Step 2: write a kernel**, or edit the examples (sections 3 to 6).
+**Step 2: write a kernel**, or edit the examples (see sections 3 to 6 below for
+full details).
 
-**Step 3: call it from R.** With the plain R C API that is one `.Call` entry
-point (section 7 shows Rcpp and cpp11):
+**Step 3: call it from R.** For example, with the plain R C API, this involves
+a single `.Call` entry point (see section 7 for Rcpp and cpp11 details):
 
 ```cpp
 #define R_NO_REMAP
@@ -146,26 +165,28 @@ Points to note:
 
 * **Use unaligned loads and stores** (`LoadU`, `StoreU`). R allocates vectors
   with 8- or 16-byte alignment, not the 32 or 64 bytes AVX2 and AVX-512
-  prefer; the aligned `Load`/`Store` would fault. On current CPUs unaligned
-  access costs little.
+  prefer ... the aligned `Load`/`Store` would fault, whereas on current CPUs
+  unaligned access costs little.
 * **Handle the tail.** `LoadN` loads the remaining `rem < N` elements and
   zero-fills the other lanes; `StoreN` writes only `rem` elements, so nothing
   past the end of the R vector is touched.
 * Alternatively `hwy/contrib/algo/transform-inl.h` provides `Transform1()`
-  and friends, which do the loop and the tail for you.
+  and related functions, which handle the loop and the tail for you.
 
 Code like this, compiled in a file that does not use `foreach_target.h`, uses
-*static dispatch*: it is compiled once, for the baseline target. On CRAN's
-x86-64 binaries that is SSE2, so you get 2 lanes of doubles, never 4 or 8. If
-that is all you need, you do not need `highway-impl.cpp`: delete it and add
-`-DHWY_HEADER_ONLY` to `PKG_CPPFLAGS` instead, so that Highway's few
-non-inline functions are provided inline.
+*static dispatch*: it is compiled once for the baseline target (on CRAN's
+x86-64 binaries this is SSE2, giving 2 lanes of doubles rather than 4 or 8).
+However, if static dispatch is sufficient, `highway-impl.cpp` is not
+needed: delete it and add `-DHWY_HEADER_ONLY` to `PKG_CPPFLAGS` instead, so
+that Highway's few non-inline functions are provided inline.
+
+However, if you're using this package, it is probably because you want ...
 
 # 4. Runtime dispatch
 
 To use AVX2 and AVX-512 where available, compile the kernel for every target
-and dispatch at run time. This is the full pattern (it is what
-`use_highway()` writes into `highway-kernels.cpp`):
+and dispatch at run time. The full pattern (which `use_highway()` writes
+into `highway-kernels.cpp`) is as follows:
 
 ```cpp
 #include <stddef.h>
@@ -215,16 +236,16 @@ void add_doubles(const double* a, const double* b, double* out, size_t n) {
 #endif
 ```
 
-and, in exactly one other file, `src/highway-impl.cpp`:
+In addition, `src/highway-impl.cpp` (and no other file) contains:
 
 ```cpp
 #include "highway/impl.h"
 ```
 
-`highway/impl.h` contains Highway's compiled runtime. R packages cannot link
-against another package's shared library, so each package compiles its own
-copy; its symbols are hidden, so two packages using Highway in the same R
-session cannot interfere.
+`highway/impl.h` contains Highway's compiled runtime. Since R packages
+cannot link against another package's shared library, each package compiles
+its own copy; its symbols are hidden so that two packages using Highway in
+the same R session cannot interfere with each other.
 
 # 5. Transcendental functions
 
@@ -238,9 +259,9 @@ accuracy and valid input range, for example (double precision):
 | `Log`    | 4 ULP     | (0, DBL_MAX] |
 | `Sin`, `Cos` | 3 ULP | [-39000, 39000] |
 
-(1 ULP is one unit in the last place, about 2.2e-16 relative error for
-doubles.) Base R's `exp()` and `log()` call the C library, which is usually
-within 1 ULP too, so results can differ from base R in the last bit or two:
+1 ULP is one unit in the last place (about 2.2e-16 relative error for
+doubles). Base R's `exp()` and `log()` call the C library, which is usually
+within 1 ULP too, so results may differ from base R in the last bit or two:
 
 ```{r accuracy}
 x <- seq(-20, 20, length.out = 1e5)
@@ -249,16 +270,17 @@ max(abs(hwy_demo_log(x[x > 0]) / log(x[x > 0]) - 1), na.rm = TRUE)
 ```
 
 **Outside the valid range, and for `NA`, `NaN` and `Inf`, Highway gives no
-guarantees.** This matters in R, because `NA_real_` is a NaN with a special
-payload (the low word is 1954), which is how R tells `NA` from `NaN`. SIMD
-arithmetic may return a NaN without that payload, turning `NA` into `NaN`.
+guarantees.** Note that in R `NA_real_` is a NaN with a special payload (the
+low word is 1954), which is how R distinguishes `NA` from `NaN`. Hence, be aware
+that SIMD arithmetic may return a NaN without that payload, essentially turning
+an `NA` into `NaN`.
 
-The demo kernels avoid the problem by checking each vector: if every lane is
+The demo kernels avoid this problem by checking each vector: if every lane is
 an ordinary value in range, the SIMD path is used; otherwise that vector is
-computed lane by lane exactly like base R. That means calling the C library,
-but returning NaN inputs unchanged: R's own `exp()` does this because on some
-CPUs (RISC-V) even the C library's `exp(NA)` returns a NaN without the
-payload.
+computed lane by lane like base R. Specifically, the scalar fallback calls
+the C library while returning NaN inputs unchanged (R's own `exp()` does
+this because on some CPUs, such as RISC-V, even the C library's `exp(NA)`
+returns a NaN without the payload).
 
 ```cpp
 const auto lo = hn::Set(d, -708.0), hi = hn::Set(d, 706.0);
@@ -279,8 +301,8 @@ identical(hwy_demo_exp(x), exp(x))
 is.na(hwy_demo_exp(x)) & !is.nan(hwy_demo_exp(x))   # NA stays NA
 ```
 
-Because ordinary data rarely contains such values, the check costs little.
-If you only need NA/NaN to stay as they are, a mask is enough:
+Since ordinary data rarely contains such values, the check costs little. If
+you only need `NA`/`NaN` to remain unchanged, a mask is enough:
 `hn::IfThenElse(hn::IsNaN(v), v, hn::Exp(d, v))` keeps the input lane, and
 its payload, wherever the input is NaN.
 
@@ -289,9 +311,9 @@ its payload, wherever the input is NaN.
 **Doubles** (`REALSXP`) map directly onto `ScalableTag<double>`.
 
 **Integers** (`INTSXP`) are 32-bit `int`, and `NA_integer_` is the smallest
-`int` (`INT_MIN`), not a special bit pattern. SIMD integer arithmetic does not
-know about it: `NA + 1` silently becomes `-2147483647`. Mask NA lanes
-explicitly, and widen before summing to avoid overflow:
+`int` (`INT_MIN`), not a special bit pattern. So, SIMD integer arithmetic treats
+it as an ordinary integer: `NA + 1` silently becomes `-2147483647`!! Therefore,
+mask NA lanes explicitly, and widen before summing to avoid overflow:
 
 ```cpp
 // Sum of an integer vector, skipping NA, accumulated in 64-bit integers.
@@ -316,21 +338,20 @@ double sum_int_na_rm(const int32_t* x, size_t n) {
 ```
 
 **Logicals** (`LGLSXP`) are also stored as `int`: 0 for `FALSE`, 1 for
-`TRUE`, `INT_MIN` for `NA`. Counting `TRUE` values is a comparison with 1 and
-`CountTrue()` per vector.
+`TRUE`, `INT_MIN` for `NA`.
 
-**When to stay scalar.** SIMD pays off for long, contiguous vectors of
-numbers with the same work per element. Keep scalar code for character
+**When to stay scalar.** SIMD is most effective for long, contiguous vectors
+of numbers with the same work per element. Keep scalar code for character
 vectors and lists, irregular memory access (although Highway has gathers),
 heavy data-dependent branching, very short vectors (a few dozen elements),
-and anywhere the code is not a measured bottleneck.
+and places where the code is not a measured bottleneck.
 
 # 7. Calling kernels from Rcpp, cpp11 and plain `.Call`
 
 The kernels are plain C++ functions that take pointers and lengths, so they
-work with any interface. The only rule is that a C++ exception must not
+work with any R interface. The only rule is that a C++ exception must not
 escape into R. Highway's abort handler (which runs if Highway detects an
-internal error) throws `highway::abort_error`, derived from
+internal error) is set up to throw `highway::abort_error`, derived from
 `std::runtime_error`, instead of terminating R.
 
 **Rcpp** converts C++ exceptions to R errors automatically:
@@ -361,17 +382,21 @@ cpp11::writable::doubles simd_exp(cpp11::doubles x) {
 }
 ```
 
-**Plain `.Call`**: use the `HIGHWAY_R_BEGIN` / `HIGHWAY_R_END` macros from
-`highway/r_guard.h`, as in section 2. They catch everything thrown between
-them, leave the `try` block (so all C++ destructors have run) and only then
-call `Rf_error()`. Allocate and protect R objects *before* `HIGHWAY_R_BEGIN`,
-and do not call the R API between the macros.
+**Plain `.Call`** can use the `HIGHWAY_R_BEGIN` / `HIGHWAY_R_END` macros from
+`highway/r_guard.h`, as in section 2. They catch any C++ exception thrown
+between them, copy its message to a buffer, leave the `try`/`catch` block
+and only then call `Rf_error()`, because `Rf_error()` uses `longjmp`, which
+must not jump out of a `catch` block (the exception would never be cleaned
+up). Consequently,
+allocate and protect R objects *before* `HIGHWAY_R_BEGIN`, declare any C++
+objects with destructors *between* the macros, and do not call the R API
+inside the block (where an R error would `longjmp` past them).
 
 # 8. Using Highway from a package written in C
 
 Highway is a C++ library, but a package whose code is in C can still use it:
 the kernels live in one C++ file and are exposed through a plain C interface.
-`use_highway(language = "c")` sets this up. The generated header,
+Call `use_highway(language = "c")` to set this up. The generated header,
 `src/highway-kernels.h`, can be included from `.c` files:
 
 ```c
@@ -383,7 +408,7 @@ int mysimd_hwy_exp(const double* x, double* out, size_t n,
                    char* err, size_t err_len);
 ```
 
-and the C++ side wraps each kernel in `highway::c_guard()`:
+The C++ side then wraps each kernel in `highway::c_guard()`:
 
 ```cpp
 extern "C" int mysimd_hwy_exp(const double* x, double* out, size_t n,
@@ -409,16 +434,17 @@ SEXP c_exp(SEXP x) {
 }
 ```
 
-Why this design: C cannot catch C++ exceptions, and an exception that reaches
-a C frame terminates the whole R process. Raw pointers, lengths and an
-integer status are the only things both languages agree on. R compiles and
-links packages that mix `.c` and `.cpp` files without further settings.
+This boundary is needed because C cannot catch C++ exceptions, and an
+exception that reaches a C frame terminates the whole R process. Raw
+pointers, lengths and an integer status code are the common interface across
+both languages, and R compiles and links packages that mix `.c` and `.cpp`
+files without further settings.
 
 # 9. Calling kernels from other threads and through C interfaces
 
-Highway kernels can run on any thread: worker threads your package creates,
-or threads owned by another native library that calls your code back. The
-rules:
+Highway kernels can run on any thread (worker threads your package creates,
+or threads owned by another native library that calls your code back),
+subject to the following rules:
 
 * **No R API calls inside kernels.** The R API may only be used on R's main
   thread. Copy what you need out of R objects first and pass pointers.
@@ -436,7 +462,8 @@ rules:
   API. (The default warning handler does nothing; the default abort handler
   throws `highway::abort_error`.)
 
-Splitting an array into chunks, one per thread, with SIMD inside each chunk:
+The following splits an array into chunks, one per thread, with SIMD inside
+each chunk:
 
 ```cpp
 #include <thread>
@@ -465,9 +492,7 @@ int exp_parallel(const double* x, double* out, size_t n, int nthreads) {
 
 Do not create more threads than the user expects. CRAN checks allow at most
 two, and R sessions often run inside parallel jobs already. Let the user
-choose the number (an argument or an option), default to a small number, and
-consider SIMD alone first: it often gives most of the speed-up without any
-threads.
+choose the number (an argument or an option), and default to a small number.
 
 # 10. Checking which target ran, and benchmarking
 
@@ -498,11 +523,11 @@ vectors of one million doubles; median times):
 | `log()`   | 3.4 ms | 1.7 ms | 2.0x |
 | `sum()`   | 1.7 ms | 0.19 ms | 9x |
 
-(R's `sum()` accumulates in extended precision where available, which is part
-of the difference.) Expect larger gains with AVX2 and AVX-512 on x86-64, and
-measure on your own workload.
+Note that R's `sum()` accumulates in extended precision where available,
+which accounts for part of the difference. Larger gains may be expected with
+AVX2 and AVX-512 on x86-64, though you should measure on your own workload.
 
-# 11. Getting your package through CRAN
+# 11. Submitting your package to CRAN
 
 * **No `-m` flags.** Never add `-mavx2`, `-march=native` or similar to
   `Makevars`; runtime dispatch makes them unnecessary, and CRAN rejects them.
@@ -525,15 +550,15 @@ measure on your own workload.
   binary redistributions reproduce its copyright notice. A one-line note in
   your package's documentation (for example in `inst/COPYRIGHTS`: "Compiled
   code includes the 'Highway' library, Copyright Google LLC and other Highway
-  authors, BSD 3-Clause License; see the 'highway' package") is a cheap way
-  to meet that. If you copy Highway's headers into your own package instead
-  of using `LinkingTo`, list the copyright holders as `cph` (see
-  `system.file("COPYRIGHTS", package = "highway")`). This is a summary of
-  common practice, not legal advice.
+  authors, BSD 3-Clause License; see the 'highway' package") is a simple way
+  to meet that requirement. If you copy Highway's headers into your own
+  package instead of using `LinkingTo`, list the copyright holders as `cph`
+  (see `system.file("COPYRIGHTS", package = "highway")`). **Note:** this is a
+  summary of common practice and strictly not legal advice!!
 * **C++ standard.** Highway needs C++17 or later, which is R's default from R
   4.4.0. Do not set `CXX_STD` to an older standard.
-* **What to test on win-builder.** Windows uses GCC (Rtools) with its own ABI
-  for vector registers; run `devtools::check_win_devel()` and check that your
+* **Win-builder testing.** Windows uses GCC (Rtools) with its own ABI for
+  vector registers; run `devtools::check_win_devel()` and check that your
   tests exercise the dispatched kernels with vector lengths that are not a
   multiple of the vector size.
 
@@ -545,19 +570,18 @@ measure on your own workload.
   never in the package).
 * **"illegal instruction" crashes.** Some code was compiled for a newer CPU
   than the one running it, nearly always because a `-m` or `-march` flag
-  crept into `Makevars` or a personal `~/.R/Makevars`. Remove it.
+  crept into `Makevars` or a personal `~/.R/Makevars`; remove any such flag.
 * **`'highway-kernels.cpp' file not found` from `foreach_target.h`.**
   `PKG_CPPFLAGS` lacks `-I.` (section 4).
-* **Undefined symbol `hwy::SupportedTargets()` or `hwy::Abort(...)`** when
-  the package loads: `highway/impl.h` is not included anywhere. Add
-  `src/highway-impl.cpp`, or define `HWY_HEADER_ONLY` if you only use static
-  dispatch.
-* **"multiple definition of" / "duplicate symbol" `hwy::...` at link time:**
-  `highway/impl.h` is included in more than one file. Keep it in
+* **Undefined symbol `hwy::SupportedTargets()` or `hwy::Abort(...)` at load
+  time.** `highway/impl.h` is not included anywhere: add `src/highway-impl.cpp`,
+  or define `HWY_HEADER_ONLY` if you only use static dispatch.
+* **"multiple definition of" or "duplicate symbol" `hwy::...` at link
+  time.** `highway/impl.h` is included in more than one file; keep it in
   `highway-impl.cpp` only.
 * **Only one target compiled.** If `HWY_DISABLED_TARGETS` leaves a single
   target, Highway turns `HWY_DYNAMIC_DISPATCH` into a direct call; this is
-  correct, just not dynamic.
+  correct behaviour, simply without dynamic dispatch.
 * **Architectures without native SIMD in this package.** To keep the
   installed size within CRAN's limits, the back ends for POWER, s390x,
   RISC-V, LoongArch and WebAssembly are not bundled; there your code
